@@ -1,0 +1,1 @@
+/home/alex/.config/dotfiles/bin/count-chinese-characters.py
