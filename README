@@ -14,3 +14,5 @@ Examples
     dictzh "^你好 "           # search for a chinese def and only that
     dictzh hello             # loosely search for a single word
     dictzh "town center"     # multiple words will require quotes
+
+Before using, don't forget to edit the `dbPath` variable in file `dictzh`.
