@@ -1,7 +1,7 @@
 Bash Mandarin/English dictionary based on cedict.
 It is volontary extremely basic, read the source and you will now what I mean.
-Public domain, 2016 GrepSuzette
-Syntax: $progName [OPTIONS] "[terms]"
+Public domain, 2016 GrepSuzette, database is using another license though
+Syntax: dictzh [OPTIONS] "[terms]"
 
 OPTIONS:
  --help -h        Show help
@@ -9,9 +9,8 @@ OPTIONS:
  --no-sep         Omit the ------ separator
 
 Examples
-    $progname "ni3 hao3"        # pinyin are separated by a space
-    $progname "lao. shi."       # grep regex are used, so the dots will match any char
-    $progname "^你好 "          # search for a chinese def and only that
-    $progname hello             # loosely search for an english term
-
-
+    dictzh "ni3 hao3"        # pinyin are separated by a space
+    dictzh "lao. shi."       # grep regex are used, so the dots will match any char
+    dictzh "^你好 "           # search for a chinese def and only that
+    dictzh hello             # loosely search for a single word
+    dictzh "town center"     # multiple words will require quotes
