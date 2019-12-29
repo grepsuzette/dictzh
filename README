@@ -1,0 +1,17 @@
+Bash Mandarin/English dictionary based on cedict.
+It is volontary extremely basic, read the source and you will now what I mean.
+Public domain, 2016 GrepSuzette
+Syntax: $progName [OPTIONS] "[terms]"
+
+OPTIONS:
+ --help -h        Show help
+ --version -v     Show version and exit
+ --no-sep         Omit the ------ separator
+
+Examples
+    $progname "ni3 hao3"        # pinyin are separated by a space
+    $progname "lao. shi."       # grep regex are used, so the dots will match any char
+    $progname "^你好 "          # search for a chinese def and only that
+    $progname hello             # loosely search for an english term
+
+
