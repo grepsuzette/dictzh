@@ -1,5 +1,5 @@
 Bash Mandarin/English dictionary based on cedict.
-It is volontary extremely basic, read the source and you will now what I mean.
+It is volontary extremely basic, read the source and you will know what I mean.
 
 ```
 Public domain, 2016 GrepSuzette, database is using another license though
@@ -31,7 +31,7 @@ This makes usage of `contrib/count-chinese-characters.py` and the
 `command_not_found_handle()` function in bash. The later is a bash hook
 allowing a function to run instead of showing an error message.
 
-We intercept the command that was run, and if it's make of chinese character,
+We intercept the command that was run, and if it's made of chinese character,
 will find it in `dictzh` instead!
 
 **Instructions**
