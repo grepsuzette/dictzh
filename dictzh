@@ -1,7 +1,7 @@
 #!/bin/bash
 progName="$( basename "$0" )"
 dbPath="$HOME/opt/perso/dictzh/cedict_1_0_ts_utf-8_mdbg.txt"
-version=0.1
+version=0.2
 
 warn() { local fmt="$1"; shift; printf "$progName: $fmt\n" "$@" >&2; }
 die () { local st="$?"; warn "$@"; exit "$st"; } 
@@ -9,9 +9,11 @@ define(){ IFS='\n' read -r -d '' ${1} || true; }
 
 define helpString <<EOF
 $progName v$version - Bash Mandarin/English dictionary based on cedict.
-It is volontary extremely basic, read the source and you will now what I mean.
-Public domain, 2016 GrepSuzette
+Public domain, 2016-2023 GrepSuzette
 Syntax: $progName [OPTIONS] "[terms]"
+
+Pinyin should be entered with a space in-between syllables: "shang xin".
+The tones [1-5] are optional. 
 
 OPTIONS:
  --help -h        Show help
@@ -19,49 +21,80 @@ OPTIONS:
  --no-sep         Omit the ------ separator
 
 Examples
-    $progname "ni3 hao3"        # pinyin are separated by a space
-    $progname "lao. shi."       # grep regex are used, so the dots will match any char
-    $progname "^你好 "          # search for a chinese def and only that
-    $progname hello             # loosely search for an english term
+    $progname ni3 hao3        # pinyin are separated by a space
+    $progname lao shi         # pinyin, will actually look for regex lao[1-5]? shi[1-5]?
+    $progname "^你好 "        # search for a chinese def and only that
+    $progname hello           # loosely search for an english term
+    $progname 老师            # loosely search for chinese
 
 EOF
 
-# terms="$*"
+terms=()
+syllables=( a o e e ai ei ao ou an en ang eng er yi ong ba bo bai bei bao ban ben bang beng bi bie biao bian bin bing bu pa po pai pei pao pou pan pen pang peng pi pie piao pian pin ping pu ma mo me mai mei mao mou man men mang meng mi mie miao miu mian min ming mu fa fo fei fou fan fen fang feng fu da de dai dei dao dou dan den dang deng di die diao diu dian diang ding du duo dui duan dun dong ta te tai tao tou tan tang teng ti tie tiao tian ting tu tuo tui tuan tun tong na ne nai nei nao nou nan nen nang neng ni nia nie niao niu nian nin niang ning nu nuo nuan nun nong nü nue la lo le lai lei lao lou lan lang leng li lia lie liao liu lian lin liang ling lu luo luan lun long lü lue lüan lün ga ge gai gei gao gou gan gen gang geng gu gua guo guai gui guan gun guang gong ka ke kai kei kao kou kan ken kang keng ku kua kuo kuai kui kuan kun kuang kong ha he hai hei hao hou han hen hang heng hu hua huo huai hui huan hun huang hong ji jia jie jiao jiu jian jin jiang jing ju jue juan jun jiong qi qia qie qiao qiu qian qin qiang qing qu que quan qun qiong xi xia xie xiao xiu xian xin xiang xing xu xue xuan xun xiong zhi zha zhe zhai zhei zhao zhou zhan zhen zhang zheng zhu zhua zhuo zhuai zhui zhuan zhun zhuang zhong chi cha che chai chao chou chan chen chang cheng chu chua chuo chuai chui chuan chun chuang chong shi sha she shai shei shao shou shan shen shang sheng shu shua shuo shuai shui shuan shun shuang shong ri re rao rou ran ren rang reng ru ruo rui ruan run rong zi za ze zai zei zao zou zan zen zang zeng zu zuo zui zuan zun zong ci ca ce cai cao cou can cen cang ceng cu cuo cui cuan cun cong si sa se sai sei sao sou san sen sang seng su suo sui suan sun song ya yo ye yai yao you yan yin yang ying wu wa wo wai wei wan wen wang weng yu yue yuan yun yong )
+
+# Usage: inarray "$value" "${array[@]}"
+inarray() { local n=$1 h; shift; for h; do [[ $n = "$h" ]] && return; done; return 1; }
 
 for i in "$@"; do
     case $i in
-        # note for help and version, we removed the shift. no options are accept.
         --help | -h ) echo "$helpString"; exit 0 ;;
         --version | -v ) echo "$version"; exit 0 ;;
         --no-sep*) shift ; optNoSep=1 ;;
         -* ) echo "Unknown option: $1"; exit 1 ;;
-        # *) terms="$*"; shift ;;
         *) 
-            terms="$*" 
+            terms+=($i)
             shift
             if [[ "$terms" =~ ^\'(.*)\'$ ]]; then
-                terms="${BASH_REMATCH[1]}"
+                terms=("${BASH_REMATCH[1]}")
             fi
             ;;
     esac
 done
 
-# echo "TERMS:$terms."
-# exit 0
-
 if [[ -z $terms ]]; then
     echo "$helpString"
     exit 0
 fi
-# see perldoc Text::Tabs
-# perl -MText::Tabs -n -e 'print expand $_'
 [[ -z $optNoSep ]] && echo ----------------------------------
-grep "$terms" "$dbPath" --color=always \
-    | perl -Mutf8 -p -e "s/^([^ ]*) +([^ ]*) +\[([^\]]*)\] +\/(.*)\//\033[1;37m\2\033[0m\t\033[0m\4  \033[1;30m[\3]\\033[0m/" \
-    # | cut -d' ' -f2- \
-    # | perl -MText::Tabs -Mutf8 -n -e '$tabstop = 25; print expand $_'
-    # | column -s'~' -t 
-    # | sed 's#^\(.*\) \+\(.*\) \+\[\(.*\)\] \+/\(.*\)/#\2 [\3] \4\n#'
-    # | awk 'BEGIN { FS = " " } ; \
-        # /^(.*) (.*) (\[.*\]) (.*)/ { print $2 "--" $3 " --  " $4}'
-    # | column
+
+areAllTermsPinyin=1
+for term in "${terms[@]}"; do 
+    if ! inarray "$term" "${syllables[@]}"; then
+        areAllTermsPinyin=0
+        break
+    fi
+done
+
+# There is 2 types of search: 
+# - "shang xin" (if all terms belong to pinyin syllable, areAllTermsPinyin=1)
+#      Look for exact match (but with loose tone if unspecified)
+#      I.e., for each word like "ni" "hao3":
+#        if it doesn't end with a number, add [1-5]? to it.
+# - "meticulously" "母"
+#      Standard search, english or characters.
+#
+if [[ $areAllTermsPinyin -ne 1 ]]; then
+    # characters or english
+    # see perldoc Text::Tabs
+    # perl -MText::Tabs -n -e 'print expand $_'
+    grep "$terms" "$dbPath" --color=always \
+        | perl -Mutf8 -p -e "s/^([^ ]*) +([^ ]*) +\[([^\]]*)\] +\/(.*)\//\033[1;37m\2\033[0m\t\033[0m\4  \033[1;30m[\3]\\033[0m/" 
+else 
+    # pinyin
+    # search pinyin and present menu to select and return hanzi
+    # For each word like "ni" "hao3":
+    # . if it doesn't end with a number, add [1-5]? to it.
+    q=""
+    for term in "${terms[@]}"; do
+        [[ $q != "" ]] && q="${q} "
+        if [[ "$term" =~ [1-5]$ ]]; then
+            q+="${term}"
+        else 
+            q+="${term}[1-5]"
+        fi
+    done
+    # use cut to remove traditional chinese at first, and just retain 
+    # simplified chinese. TODO a --trad* --traditional -t switch to specify traditional characters
+    grep "\\[$q\\]" "$dbPath" --color=always | cut -d' ' -f2-
+fi
+
