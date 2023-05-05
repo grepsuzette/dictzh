@@ -59,7 +59,10 @@ fi
 
 areAllTermsPinyin=1
 for term in "${terms[@]}"; do 
-    if ! inarray "$term" "${syllables[@]}"; then
+    if [[ "$term" =~ ^([a-zA-Z]+) ]]; then
+        toneless="${BASH_REMATCH[1]}"
+    fi
+    if ! inarray "$toneless" "${syllables[@]}"; then
         areAllTermsPinyin=0
         break
     fi
