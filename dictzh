@@ -1,7 +1,7 @@
 #!/bin/bash
 progName="$( basename "$0" )"
-dbPath="$HOME/opt/perso/dictzh/cedict_1_0_ts_utf-8_mdbg.txt"
-version=0.2
+dbPath="$HOME/opt/src/dictzh/cedict_1_0_ts_utf-8_mdbg.txt"
+version=0.3
 
 warn() { local fmt="$1"; shift; printf "$progName: $fmt\n" "$@" >&2; }
 die () { local st="$?"; warn "$@"; exit "$st"; } 
@@ -9,7 +9,7 @@ define(){ IFS='\n' read -r -d '' ${1} || true; }
 
 define helpString <<EOF
 $progName v$version - Bash Mandarin/English dictionary based on cedict.
-Public domain, 2016-2023 GrepSuzette
+Public domain, 2016-2025 GrepSuzette
 Syntax: $progName [OPTIONS] "[terms]"
 
 Pinyin should be entered with a space in-between syllables: "shang xin".
@@ -68,22 +68,18 @@ for term in "${terms[@]}"; do
     fi
 done
 
-# There is 2 types of search: 
+# There are 3 types of search: 
 # - "shang xin" (if all terms belong to pinyin syllable, areAllTermsPinyin=1)
 #      Look for exact match (but with loose tone if unspecified)
 #      I.e., for each word like "ni" "hao3":
 #        if it doesn't end with a number, add [1-5]? to it.
-# - "meticulously" "母"
+# - "meticulously" "父母"
 #      Standard search, english or characters.
+# - "歌"
+#      Single character: they must show a minimal output
 #
-if [[ $areAllTermsPinyin -ne 1 ]]; then
-    # characters or english
-    # see perldoc Text::Tabs
-    # perl -MText::Tabs -n -e 'print expand $_'
-    grep "$terms" "$dbPath" --color=always \
-        | perl -Mutf8 -p -e "s/^([^ ]*) +([^ ]*) +\[([^\]]*)\] +\/(.*)\//\033[1;37m\2\033[0m\t\033[0m\4  \033[1;30m[\3]\\033[0m/" 
-else 
-    # pinyin
+if [[ $areAllTermsPinyin -eq 1 ]]; then
+    # Pinyin
     # search pinyin and present menu to select and return hanzi
     # For each word like "ni" "hao3":
     # . if it doesn't end with a number, add [1-5]? to it.
@@ -96,8 +92,18 @@ else
             q+="${term}[1-5]"
         fi
     done
-    # use cut to remove traditional chinese at first, and just retain 
+    # Use cut to remove traditional chinese at first, and just retain 
     # simplified chinese. TODO a --trad* --traditional -t switch to specify traditional characters
     grep "\\[$q\\]" "$dbPath" --color=always | cut -d' ' -f2-
+elif [[ $terms =~ ^[一-龯]$ ]]; then
+    # A single chinese character
+    # Must output only that characters, not multiple chinese words composed of it
+    grep -E "^$terms " "$dbPath" --color=always
+else
+    # Several Characters or english
+    # see perldoc Text::Tabs
+    # perl -MText::Tabs -n -e 'print expand $_'
+    grep "$terms" "$dbPath" --color=always \
+        | perl -Mutf8 -p -e "s/^([^ ]*) +([^ ]*) +\[([^\]]*)\] +\/(.*)\//\033[1;37m\2\033[0m\t\033[0m\4  \033[1;30m[\3]\\033[0m/" 
 fi
 
